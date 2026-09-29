@@ -86,6 +86,27 @@ public interface OrderService {
 	Order reject(Long orderId, String reason);
 
 	/**
+	 * Corrects the estimated receive date, or withdraws it.
+	 *
+	 * <p>The estimate quoted on approval is worked out from a configured lead time,
+	 * which cannot know that a frame came back in stock or that the lab is
+	 * queueing. The client does, so this overwrites the date, and passing
+	 * {@code null} clears it for when an estimate has to be withdrawn rather than
+	 * replaced.
+	 *
+	 * <p>Only an order the shop has actually accepted carries a date. A date on an
+	 * order still awaiting review would promise something for work that has not
+	 * started, and a date on a rejected one is a contradiction.
+	 *
+	 * @param receiveDate the date the customer should expect the order, or
+	 *                    {@code null} to withdraw the estimate; must not be in the past
+	 * @throws com.myopty.order.exception.OrderNotFoundException   if no such order exists
+	 * @throws com.myopty.order.exception.OrderNotApprovedException if the order has not been approved
+	 * @throws com.myopty.order.exception.InvalidOrderException    if the date is in the past
+	 */
+	Order setReceiveDate(Long orderId, LocalDate receiveDate);
+
+	/**
 	 * Records that the order is being made in the lab.
 	 *
 	 * <p>One of the three production steps. Which of them are legal from the
@@ -116,24 +137,5 @@ public interface OrderService {
 	 * @throws com.myopty.order.exception.OrderNotAdvancableException if the order cannot be moved to DISPATCHED from where it is
 	 */
 	Order markDispatched(Long orderId);
-	 * Corrects the estimated receive date, or withdraws it.
-	 *
-	 * <p>The estimate quoted on approval is worked out from a configured lead time,
-	 * which cannot know that a frame came back in stock or that the lab is
-	 * queueing. The client does, so this overwrites the date, and passing
-	 * {@code null} clears it for when an estimate has to be withdrawn rather than
-	 * replaced.
-	 *
-	 * <p>Only an order the shop has actually accepted carries a date. A date on an
-	 * order still awaiting review would promise something for work that has not
-	 * started, and a date on a rejected one is a contradiction.
-	 *
-	 * @param receiveDate the date the customer should expect the order, or
-	 *                    {@code null} to withdraw the estimate; must not be in the past
-	 * @throws com.myopty.order.exception.OrderNotFoundException   if no such order exists
-	 * @throws com.myopty.order.exception.OrderNotApprovedException if the order has not been approved
-	 * @throws com.myopty.order.exception.InvalidOrderException    if the date is in the past
-	 */
-	Order setReceiveDate(Long orderId, LocalDate receiveDate);
 
 }

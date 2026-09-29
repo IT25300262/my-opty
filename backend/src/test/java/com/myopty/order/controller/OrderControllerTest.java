@@ -21,8 +21,8 @@ import com.myopty.order.domain.OrderType;
 import com.myopty.order.exception.InvalidOrderException;
 import com.myopty.order.exception.OrderAlreadyExistsException;
 import com.myopty.order.exception.OrderExceptionHandler;
-import com.myopty.order.exception.OrderNotAdvancableException;
 import com.myopty.order.exception.OrderNotApprovedException;
+import com.myopty.order.exception.OrderNotAdvancableException;
 import com.myopty.order.exception.OrderNotFoundException;
 import com.myopty.order.exception.OrderNotReviewableException;
 import com.myopty.order.exception.PrescriptionNotFoundException;
@@ -387,62 +387,6 @@ class OrderControllerTest {
 	}
 
 	@Test
-	void marksAnOrderAsProcessing() throws Exception {
-		when(this.service.markProcessing(3L)).thenReturn(orderIn(OrderStatus.PROCESSING));
-
-		this.mockMvc.perform(put("/api/orders/3/processing"))
-			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.data.status").value("PROCESSING"));
-	}
-
-	@Test
-	void marksAnOrderAsReady() throws Exception {
-		when(this.service.markReady(3L)).thenReturn(orderIn(OrderStatus.READY));
-
-		this.mockMvc.perform(put("/api/orders/3/ready"))
-			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.data.status").value("READY"));
-	}
-
-	@Test
-	void marksAnOrderAsDispatched() throws Exception {
-		when(this.service.markDispatched(3L)).thenReturn(orderIn(OrderStatus.DISPATCHED));
-
-		this.mockMvc.perform(put("/api/orders/3/dispatched"))
-			.andExpect(status().isOk())
-			.andExpect(jsonPath("$.data.status").value("DISPATCHED"));
-	}
-
-	/**
-	 * Each endpoint names the state it moves to, so a request cannot push an order
-	 * somewhere the workflow has not reached: the three routes are the only way in.
-	 */
-	@Test
-	void refusesToProcessAnOrderStillAwaitingReview() throws Exception {
-		when(this.service.markProcessing(3L))
-			.thenThrow(new OrderNotAdvancableException(3L, "PENDING_REVIEW", OrderStatus.PROCESSING));
-
-		this.mockMvc.perform(put("/api/orders/3/processing"))
-			.andExpect(status().isConflict())
-			.andExpect(jsonPath("$.error.code").value("ORDER_NOT_ADVANCABLE"))
-			.andExpect(jsonPath("$.error.message").value(org.hamcrest.Matchers.containsString("PROCESSING")));
-	}
-
-	@Test
-	void refusesToMoveADispatchedOrderAgain() throws Exception {
-		when(this.service.markReady(3L))
-			.thenThrow(new OrderNotAdvancableException(3L, "DISPATCHED", OrderStatus.READY));
-
-		this.mockMvc.perform(put("/api/orders/3/ready"))
-			.andExpect(status().isConflict())
-			.andExpect(jsonPath("$.error.code").value("ORDER_NOT_ADVANCABLE"));
-	}
-
-	@Test
-	void reportsAnUnknownOrderWhenAdvancingIt() throws Exception {
-		when(this.service.markProcessing(3L)).thenThrow(new OrderNotFoundException(3L));
-
-		this.mockMvc.perform(put("/api/orders/3/processing"))
 	void setsTheReceiveDate() throws Exception {
 		Order dated = approvedOrder();
 		dated.setReceiveDate(LocalDate.of(2026, 10, 27));
@@ -518,6 +462,67 @@ class OrderControllerTest {
 		this.mockMvc
 			.perform(put("/api/orders/3/receive-date").contentType(MediaType.APPLICATION_JSON)
 				.content("{\"receiveDate\":\"2026-10-27\"}"))
+			.andExpect(status().isNotFound())
+			.andExpect(jsonPath("$.error.code").value("ORDER_NOT_FOUND"));
+	}
+
+	@Test
+	void marksAnOrderAsProcessing() throws Exception {
+		when(this.service.markProcessing(3L)).thenReturn(orderIn(OrderStatus.PROCESSING));
+
+		this.mockMvc.perform(put("/api/orders/3/processing"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.status").value("PROCESSING"));
+	}
+
+	@Test
+	void marksAnOrderAsReady() throws Exception {
+		when(this.service.markReady(3L)).thenReturn(orderIn(OrderStatus.READY));
+
+		this.mockMvc.perform(put("/api/orders/3/ready"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.status").value("READY"));
+	}
+
+	@Test
+	void marksAnOrderAsDispatched() throws Exception {
+		when(this.service.markDispatched(3L)).thenReturn(orderIn(OrderStatus.DISPATCHED));
+
+		this.mockMvc.perform(put("/api/orders/3/dispatched"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.data.status").value("DISPATCHED"));
+	}
+
+	/**
+	 * Each endpoint names the state it moves to, so a request cannot push an order
+	 * somewhere the workflow has not reached: the three routes are the only way in.
+	 */
+	@Test
+	void refusesToProcessAnOrderStillAwaitingReview() throws Exception {
+		when(this.service.markProcessing(3L))
+			.thenThrow(new OrderNotAdvancableException(3L, "PENDING_REVIEW", OrderStatus.PROCESSING));
+
+		this.mockMvc.perform(put("/api/orders/3/processing"))
+			.andExpect(status().isConflict())
+			.andExpect(jsonPath("$.error.code").value("ORDER_NOT_ADVANCABLE"))
+			.andExpect(jsonPath("$.error.message").value(org.hamcrest.Matchers.containsString("PROCESSING")));
+	}
+
+	@Test
+	void refusesToMoveADispatchedOrderAgain() throws Exception {
+		when(this.service.markReady(3L))
+			.thenThrow(new OrderNotAdvancableException(3L, "DISPATCHED", OrderStatus.READY));
+
+		this.mockMvc.perform(put("/api/orders/3/ready"))
+			.andExpect(status().isConflict())
+			.andExpect(jsonPath("$.error.code").value("ORDER_NOT_ADVANCABLE"));
+	}
+
+	@Test
+	void reportsAnUnknownOrderWhenAdvancingIt() throws Exception {
+		when(this.service.markProcessing(3L)).thenThrow(new OrderNotFoundException(3L));
+
+		this.mockMvc.perform(put("/api/orders/3/processing"))
 			.andExpect(status().isNotFound())
 			.andExpect(jsonPath("$.error.code").value("ORDER_NOT_FOUND"));
 	}

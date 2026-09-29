@@ -247,6 +247,21 @@ class OrderExceptionHandlerTest {
 	}
 
 	/**
+	 * A receive date on an order the shop has not accepted is a 409 rather than a
+	 * 400: the body is fine, it just does not apply until the order is approved.
+	 */
+	@Test
+	void reportsAnOrderThatCannotCarryAReceiveDate() {
+		ResponseEntity<ApiResponse<Void>> response = this.handler
+			.handleOrderNotApproved(new OrderNotApprovedException(3L, "PENDING_REVIEW"));
+
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+		assertThat(response.getBody()).isNotNull();
+		assertThat(response.getBody().error().code()).isEqualTo("ORDER_NOT_APPROVED");
+		assertThat(response.getBody().error().message()).contains("3").contains("PENDING_REVIEW");
+	}
+
+	/**
 	 * A production step the order cannot make is a 409 rather than a 400: the request
 	 * is fine, it just does not apply to an order in this state. The message names
 	 * both ends of the refused move so a client knows which step to retry.
@@ -260,21 +275,6 @@ class OrderExceptionHandlerTest {
 		assertThat(response.getBody()).isNotNull();
 		assertThat(response.getBody().error().code()).isEqualTo("ORDER_NOT_ADVANCABLE");
 		assertThat(response.getBody().error().message()).contains("3").contains("DISPATCHED").contains("READY");
-	}
-
-	private static FieldError fieldError(String field, String message) {		return new FieldError("prescription", field, null, false, null, null, message);
-	 * A receive date on an order the shop has not accepted is a 409 rather than a
-	 * 400: the body is fine, it just does not apply until the order is approved.
-	 */
-	@Test
-	void reportsAnOrderThatCannotCarryAReceiveDate() {
-		ResponseEntity<ApiResponse<Void>> response = this.handler
-			.handleOrderNotApproved(new OrderNotApprovedException(3L, "PENDING_REVIEW"));
-
-		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-		assertThat(response.getBody()).isNotNull();
-		assertThat(response.getBody().error().code()).isEqualTo("ORDER_NOT_APPROVED");
-		assertThat(response.getBody().error().message()).contains("3").contains("PENDING_REVIEW");
 	}
 
 	private static FieldError fieldError(String field, String message) {
